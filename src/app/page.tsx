@@ -17,7 +17,7 @@ const dateString = (date: Date) => {
 }
 
 const filterToString = (filter: { name?: string | null, time?: number | null, vtt?: string | null, dm?: string | null }) =>  {
-  if (filter.time || filter.vtt || filter.dm) {
+  if (filter.time || filter.vtt || filter.dm || filter.name) {
     const ret = [];
     if (filter.name) {
       ret.push(filter.name)
@@ -174,7 +174,7 @@ export default function Home() {
         </div>
         <div className="flex flex-col sm:flex-auto pt-2">
           <span className="leading-6 text-gray-900">Filters: {filterToString(filter)}</span>
-          {filter.time || filter.dm || filter.vtt || filter.name ? <span className="text-sm leading-6 text-gray-900">{filteredResults.length} matches</span> : null}
+          {filter.time || filter.dm || filter.vtt || filter.name ? <span className="text-sm leading-6 text-gray-900">{filteredResults.length} match{filteredResults.length === 1 ? "" : "es"}</span> : null}
         </div>
         <div>
         </div>
