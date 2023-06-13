@@ -50,7 +50,7 @@ function Dropdown({ title, items =[], onSelect }: { title:string, items:{value:s
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+        <Menu.Items className="absolute left-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
           <div className="py-1">
             <Menu.Item key={"ANY"}>
                 {({ active }) => (
@@ -145,11 +145,10 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between">
-      <div></div>
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
-          <h1 className="text-base font-semibold leading-6 text-gray-900">Sessions at VDDW</h1>
+            <h1 className="text-base font-semibold leading-6 text-gray-900">{sessions?.length ? `${sessions.length} ` : ""}Sessions at VDDW</h1>
         </div>
         </div>
         <div className="flex gap-4">
@@ -157,8 +156,9 @@ export default function Home() {
           <Dropdown title="DM" items={dms} onSelect={(value) => setFilter((prev) => { return { ...prev, dm: value } })} />
           <Dropdown title="VTT" items={vtts} onSelect={(value) => setFilter((prev) => { return { ...prev, vtt: value } })} />
         </div>
-        <div className="sm:flex-auto pt-2">
-          <h2 className="font-semibold leading-6 text-gray-900">Filters: {filterToString(filter)}</h2>
+        <div className="flex flex-col sm:flex-auto pt-2">
+          <span className="leading-6 text-gray-900">Filters: {filterToString(filter)}</span>
+          {filter.time || filter.dm || filter.vtt ? <span className="text-sm leading-6 text-gray-900">{filteredResults.length} matches</span> : null}
         </div>
         <div>
         </div>
