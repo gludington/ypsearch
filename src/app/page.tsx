@@ -1,10 +1,10 @@
 "use client"
 import axios from 'axios';
-import { useEffect, useState, Fragment } from 'react';
+import { useEffect, useState, Fragment, JSXElementConstructor, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal } from 'react';
 import { Menu, Transition } from '@headlessui/react'
 import { ChevronDownIcon } from '@heroicons/react/20/solid'
 
-function classNames(...classes) {
+function classNames(...classes: any) {
   return classes.filter(Boolean).join(' ')
 }
 
@@ -13,7 +13,7 @@ const dateString = (date: Date) => {
   return date ? date.toLocaleString(navigator.language || 'en-us', { weekday: "long", month: "short", day: "numeric", hour: "numeric", minute: "numeric" }) : "";
 }
 
-const filterToString = (filter: { time: number, vtt: string, dm: string }) =>  {
+const filterToString = (filter: { time?: number | null, vtt?: string | null, dm?: string | null }) =>  {
   if (filter.time || filter.vtt || filter.dm) {
     const ret = [];
     if (filter.time) {
@@ -87,21 +87,21 @@ function Dropdown({ title, items =[], onSelect }: { title:string, items:{value:s
   )
 }
 export default function Home() {
-  const [sessions, setSessions] = useState([]);
-  const [dms, setDms] = useState([])
-  const [vtts, setVtts] = useState([]);
-  const [times, setTimes] = useState([]);
+  const [sessions, setSessions] = useState<any>([]);
+  const [dms, setDms] = useState<any>([])
+  const [vtts, setVtts] = useState<any>([]);
+  const [times, setTimes] = useState<any>([]);
   const [filter, setFilter] = useState({ time: null, dm: null, vtt: null });
-  const [filteredResults, setFilteredResults] = useState([]);
+  const [filteredResults, setFilteredResults] = useState<any>([]);
   
   useEffect(() => {
     axios.get('/api/sessions').then(rsp => {
-      let newResults = [];
+      let newResults: any[] = [];
       let newDms = new Set();
       let newVtts = new Set();
       let newTimes = new Set();
-      rsp.data.results.forEach(session => {
-        const sessionDate = session.startDate ? new Date(session.startDate) : null
+      rsp.data.results.forEach((session: { startDate: unknown; dm: unknown; vtt: any; }) => {
+        const sessionDate = session.startDate ? new Date(session.startDate as number) : null
         newResults.push({ ...session, startDate: sessionDate });
         if (session.dm) {
           newDms.add(session.dm);
@@ -111,7 +111,7 @@ export default function Home() {
       })
       setSessions(newResults);
       setFilteredResults(newResults);
-      setTimes(Array.from(newTimes).sort().map(time => { return { value: time || 0, text: time ? dateString(new Date(time)) : "No Time" } }));
+      setTimes(Array.from(newTimes).sort().map(time => { return { value: time || 0, text: time ? dateString(new Date(time as number)) : "No Time" } }));
       setDms(Array.from(newDms).sort().map(dm => { return { value: dm, text: dm } }));
       setVtts(Array.from(newVtts).sort().map(vtt => { return { value: vtt, text: vtt } }));
     })
@@ -120,17 +120,17 @@ export default function Home() {
     if (filter.time || filter.dm || filter.vtt) {
       let results = sessions;
       if (filter.time) {
-        results = results.filter(session => {
+        results = results.filter((session: { startDate: { getTime: () => null; }; }) => {
           return session.startDate ? filter.time === session.startDate.getTime() : false;
         })
       }
       if (filter.dm) {
-        results = results.filter(session => {
+        results = results.filter((session: { dm: null; }) => {
           return session.dm ? filter.dm === session.dm : false;
         });
       }
       if (filter.vtt) {
-        results = results.filter(session => {
+        results = results.filter((session: { vtt: null; }) => {
           return session.vtt ? filter.vtt === session.vtt : false;
         });
       }
@@ -182,7 +182,7 @@ export default function Home() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredResults.map((session, idx) => (
+                {filteredResults.map((session: { name: any; url: string | undefined; title: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | PromiseLikeOfReactNode | null | undefined; startDate: Date; dm: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | PromiseLikeOfReactNode | null | undefined; vtt: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | PromiseLikeOfReactNode | null | undefined; }, idx: any) => (
                   <tr key={`${session.name}-${idx}`}>
                     <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
                       <a className="text-indigo-600 hover:text-indigo-900" href={session.url} target="_new">{session.title}</a>

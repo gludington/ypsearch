@@ -44,7 +44,7 @@ const toVddwSession = (session: any): VddwSession => {
 
     const shortDescriptionLine = session.description_short.split(' - ');
     if (shortDescriptionLine.length > 0) {
-        const dmSegment = shortDescriptionLine.find(desc => desc.indexOf("DM: ") > -1)
+        const dmSegment = shortDescriptionLine.find((desc: string | string[]) => desc.indexOf("DM: ") > -1)
         dm = dmSegment ? dmSegment.substring("DM :".length) : undefined;
     }
 
