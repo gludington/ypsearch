@@ -199,7 +199,7 @@ export default function Home() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredResults.map((session: { name: any; url: string | undefined; title: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | PromiseLikeOfReactNode | null | undefined; startDate: Date; dm: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | PromiseLikeOfReactNode | null | undefined; vtt: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | PromiseLikeOfReactNode | null | undefined; }, idx: any) => (
+                {filteredResults.map((session: ClientVddwSession, idx: any) => (
                   <tr key={`${session.name}-${idx}`}>
                     <td className="py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
                       <a className="text-indigo-600 hover:text-indigo-900" href={session.url} target="_new">{session.title}</a>
