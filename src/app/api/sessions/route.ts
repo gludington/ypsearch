@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
-type VddwSession = {
+export type VddwSession = {
     title: string;
+    name?: string;
     code?: string;
     dm?: string;
     vtt?: string;
@@ -23,20 +24,23 @@ const toVddwSession = (session: any): VddwSession => {
     let code: string | null = null;
     let dm: string | null = null;
     let vtt: string | null = null;
+    let name: string | null = null;
     if (titleLine.length > 0) {
         //does title contain Table #?
         if (titleLine[0].indexOf("Table #") > -1) {
             isRedCarpet = false;
             code = titleLine[1];
-            
+            name = titleLine[1] + ' - ' + titleLine[2];
             //vtt is always last
             const vttCandidate = titleLine[titleLine.length - 1];
             vtt = vttCandidate;
         } else {
             isRedCarpet = true;
+            name = session.title;
         }
     } else {
         isRedCarpet = true;
+        name = null;
         code = null;
         dm = null;
         vtt = null;
@@ -50,6 +54,7 @@ const toVddwSession = (session: any): VddwSession => {
 
     return {
         title: session.title,
+        name: name || undefined,
         code: code || undefined,
         dm: dm || undefined,
         vtt: vtt || undefined,

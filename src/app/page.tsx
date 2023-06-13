@@ -3,6 +3,9 @@ import axios from 'axios';
 import { useEffect, useState, Fragment, JSXElementConstructor, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal } from 'react';
 import { Menu, Transition } from '@headlessui/react'
 import { ChevronDownIcon } from '@heroicons/react/20/solid'
+import { VddwSession } from './api/sessions/route';
+
+type ClientVddwSession = VddwSession & { startDate?: Date }
 
 function classNames(...classes: any) {
   return classes.filter(Boolean).join(' ')
@@ -13,9 +16,12 @@ const dateString = (date: Date) => {
   return date ? date.toLocaleString(navigator.language || 'en-us', { weekday: "long", month: "short", day: "numeric", hour: "numeric", minute: "numeric" }) : "";
 }
 
-const filterToString = (filter: { time?: number | null, vtt?: string | null, dm?: string | null }) =>  {
+const filterToString = (filter: { name?: string | null, time?: number | null, vtt?: string | null, dm?: string | null }) =>  {
   if (filter.time || filter.vtt || filter.dm) {
     const ret = [];
+    if (filter.name) {
+      ret.push(filter.name)
+    }
     if (filter.time) {
         ret.push(`at ${dateString(new Date(filter.time))}`)
     }
@@ -87,12 +93,13 @@ function Dropdown({ title, items =[], onSelect }: { title:string, items:{value:s
   )
 }
 export default function Home() {
-  const [sessions, setSessions] = useState<any>([]);
+  const [sessions, setSessions] = useState<ClientVddwSession[]>([]);
+  const [names, setNames] = useState<any>([]); 
   const [dms, setDms] = useState<any>([])
   const [vtts, setVtts] = useState<any>([]);
   const [times, setTimes] = useState<any>([]);
-  const [filter, setFilter] = useState({ time: null, dm: null, vtt: null });
-  const [filteredResults, setFilteredResults] = useState<any>([]);
+  const [filter, setFilter] = useState({ name: null, time: null, dm: null, vtt: null });
+  const [filteredResults, setFilteredResults] = useState<ClientVddwSession[]>([]);
   
   useEffect(() => {
     axios.get('/api/sessions').then(rsp => {
@@ -100,12 +107,14 @@ export default function Home() {
       let newDms = new Set();
       let newVtts = new Set();
       let newTimes = new Set();
-      rsp.data.results.forEach((session: { startDate: unknown; dm: unknown; vtt: any; }) => {
+      let newNames = new Set();
+      rsp.data.results.forEach((session: VddwSession) => {
         const sessionDate = session.startDate ? new Date(session.startDate as number) : null
         newResults.push({ ...session, startDate: sessionDate });
         if (session.dm) {
           newDms.add(session.dm);
         }
+        newNames.add(session.name);
         newVtts.add(session.vtt || 'Unknown');
         newTimes.add(session.startDate);
       })
@@ -113,25 +122,31 @@ export default function Home() {
       setFilteredResults(newResults);
       setTimes(Array.from(newTimes).sort().map(time => { return { value: time || 0, text: time ? dateString(new Date(time as number)) : "No Time" } }));
       setDms(Array.from(newDms).sort().map(dm => { return { value: dm, text: dm } }));
+      setNames(Array.from(newNames).sort().map(name => { return { value: name, text: name } }));
       setVtts(Array.from(newVtts).sort().map(vtt => { return { value: vtt, text: vtt } }));
     })
   }, []);
   useEffect(() => {
-    if (filter.time || filter.dm || filter.vtt) {
+    if (filter.time || filter.dm || filter.vtt || filter.name) {
       let results = sessions;
       if (filter.time) {
-        results = results.filter((session: { startDate: { getTime: () => null; }; }) => {
+        results = results.filter((session: ClientVddwSession ) => {
           return session.startDate ? filter.time === session.startDate.getTime() : false;
         })
       }
       if (filter.dm) {
-        results = results.filter((session: { dm: null; }) => {
+        results = results.filter((session:ClientVddwSession) => {
           return session.dm ? filter.dm === session.dm : false;
         });
       }
       if (filter.vtt) {
-        results = results.filter((session: { vtt: null; }) => {
+        results = results.filter((session: ClientVddwSession) => {
           return session.vtt ? filter.vtt === session.vtt : false;
+        });
+      }
+      if (filter.name) {
+        results = results.filter((session: ClientVddwSession) => {
+          return session.name ? filter.name === session.name : false;
         });
       }
       setFilteredResults(results || []);
@@ -152,13 +167,14 @@ export default function Home() {
         </div>
         </div>
         <div className="flex gap-4">
+          <Dropdown title="Game Name" items={names} onSelect={(value) => setFilter((prev) => { return { ...prev, name: value } })} />
           <Dropdown title="Start Time" items={times} onSelect={(value) => setFilter((prev) => { return { ...prev, time: value } })} />
           <Dropdown title="DM" items={dms} onSelect={(value) => setFilter((prev) => { return { ...prev, dm: value } })} />
           <Dropdown title="VTT" items={vtts} onSelect={(value) => setFilter((prev) => { return { ...prev, vtt: value } })} />
         </div>
         <div className="flex flex-col sm:flex-auto pt-2">
           <span className="leading-6 text-gray-900">Filters: {filterToString(filter)}</span>
-          {filter.time || filter.dm || filter.vtt ? <span className="text-sm leading-6 text-gray-900">{filteredResults.length} matches</span> : null}
+          {filter.time || filter.dm || filter.vtt || filter.name ? <span className="text-sm leading-6 text-gray-900">{filteredResults.length} matches</span> : null}
         </div>
         <div>
         </div>
