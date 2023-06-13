@@ -145,6 +145,7 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
+      <div></div>
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
@@ -184,12 +185,12 @@ export default function Home() {
               <tbody className="divide-y divide-gray-200">
                 {filteredResults.map((session: { name: any; url: string | undefined; title: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | PromiseLikeOfReactNode | null | undefined; startDate: Date; dm: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | PromiseLikeOfReactNode | null | undefined; vtt: string | number | boolean | ReactElement<any, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | PromiseLikeOfReactNode | null | undefined; }, idx: any) => (
                   <tr key={`${session.name}-${idx}`}>
-                    <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
+                    <td className="py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
                       <a className="text-indigo-600 hover:text-indigo-900" href={session.url} target="_new">{session.title}</a>
                     </td>
-                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{dateString(session.startDate)}</td>
-                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{session.dm}</td>
-                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{session.vtt}</td>
+                    <td className="text-sm text-gray-500">{dateString(session.startDate)}</td>
+                    <td className="text-sm text-gray-500">{session.dm}</td>
+                    <td className="text-sm text-gray-500">{session.vtt}</td>
                   </tr>
                 ))}
               </tbody>
