@@ -144,7 +144,7 @@ export default function Home() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
+    <main className="flex min-h-screen flex-col items-center justify-between">
       <div></div>
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="sm:flex sm:items-center">
@@ -157,8 +157,8 @@ export default function Home() {
           <Dropdown title="DM" items={dms} onSelect={(value) => setFilter((prev) => { return { ...prev, dm: value } })} />
           <Dropdown title="VTT" items={vtts} onSelect={(value) => setFilter((prev) => { return { ...prev, vtt: value } })} />
         </div>
-        <div className="sm:flex-auto">
-          <h1 className="text-base font-semibold leading-6 text-gray-900">Filters: {filterToString(filter)}</h1>
+        <div className="sm:flex-auto pt-2">
+          <h2 className="font-semibold leading-6 text-gray-900">Filters: {filterToString(filter)}</h2>
         </div>
         <div>
         </div>
