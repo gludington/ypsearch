@@ -5,7 +5,7 @@ import { Menu, Transition } from '@headlessui/react'
 import { ChevronDownIcon } from '@heroicons/react/20/solid'
 import { VddwSession } from './api/sessions/route';
 
-type ClientVddwSession = VddwSession & { startDate?: Date }
+type ClientVddwSession = VddwSession & { sessionDate?: Date }
 
 function classNames(...classes: any) {
   return classes.filter(Boolean).join(' ')
@@ -109,8 +109,8 @@ export default function Home() {
       let newTimes = new Set();
       let newNames = new Set();
       rsp.data.results.forEach((session: VddwSession) => {
-        const sessionDate = session.startDate ? new Date(session.startDate as number) : null
-        newResults.push({ ...session, startDate: sessionDate });
+        const sessionDate = session.startDate ? new Date(session.startDate as number) : 0
+        newResults.push({ ...session, sessionDate: sessionDate });
         if (session.dm) {
           newDms.add(session.dm);
         }
@@ -127,11 +127,11 @@ export default function Home() {
     })
   }, []);
   useEffect(() => {
-    if (filter.time || filter.dm || filter.vtt || filter.name) {
+    if (filter.time || filter.time === 0 || filter.dm || filter.vtt || filter.name) {
       let results = sessions;
-      if (filter.time) {
-        results = results.filter((session: ClientVddwSession ) => {
-          return session.startDate ? filter.time === session.startDate.getTime() : false;
+      if (filter.time || filter.time === 0) {
+        results = results.filter((session: ClientVddwSession) => {
+          return filter.time === session.startDate;
         })
       }
       if (filter.dm) {
@@ -204,7 +204,7 @@ export default function Home() {
                     <td className="py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
                       <a className="text-indigo-600 hover:text-indigo-900" href={session.url} target="_new">{session.title}</a>
                     </td>
-                    <td className="text-sm text-gray-500">{dateString(session.startDate)}</td>
+                    <td className="text-sm text-gray-500">{dateString(session.sessionDate)}</td>
                     <td className="text-sm text-gray-500">{session.dm}</td>
                     <td className="text-sm text-gray-500">{session.vtt}</td>
                   </tr>
