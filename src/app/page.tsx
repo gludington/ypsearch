@@ -5,7 +5,7 @@ import { Menu, Transition } from '@headlessui/react'
 import { ChevronDownIcon } from '@heroicons/react/20/solid'
 import { VddwSession } from './api/sessions/route';
 
-type ClientVddwSession = VddwSession & { sessionDate?: Date }
+type ClientVddwSession = VddwSession & { sessionDate: Date }
 
 function classNames(...classes: any) {
   return classes.filter(Boolean).join(' ')
