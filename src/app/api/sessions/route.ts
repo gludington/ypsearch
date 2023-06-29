@@ -83,8 +83,7 @@ export async function GET() {
   return NextResponse.json({ fetchDate, results: results }, {
       status: 200,
       headers: {
-        'content-type': 'application/json',
-        'cache-control': 'public, s-maxage=1200, stale-while-revalidate=600',
+        'content-type': 'application/json'
       },
     },)
 }
