@@ -16,6 +16,10 @@ const dateString = (date: Date) => {
   return date ? date.toLocaleString(navigator.language || 'en-us', { weekday: "long", month: "short", day: "numeric", hour: "numeric", minute: "numeric" }) : "";
 }
 
+const shortDateString = (date: Date) => {
+  return date ? date.toLocaleString(navigator.language || 'en-us', { month: "short", day: "numeric", hour: "numeric", minute: "numeric" }) : "";
+}
+
 const filterToString = (filter: { name?: string | null, time?: number | null, vtt?: string | null, dm?: string | null }) =>  {
   if (filter.time || filter.vtt || filter.dm || filter.name) {
     const ret = [];
@@ -94,6 +98,7 @@ function Dropdown({ title, items =[], onSelect }: { title:string, items:{value:s
 }
 export default function Home() {
   const [sessions, setSessions] = useState<ClientVddwSession[]>([]);
+  const [fetchDate, setFetchDate] = useState<Date>(); 
   const [names, setNames] = useState<any>([]); 
   const [dms, setDms] = useState<any>([])
   const [vtts, setVtts] = useState<any>([]);
@@ -118,6 +123,7 @@ export default function Home() {
         newVtts.add(session.vtt || 'Unknown');
         newTimes.add(session.startDate);
       })
+      setFetchDate(new Date(rsp.data.fetchDate));
       setSessions(newResults);
       setFilteredResults(newResults);
       setTimes(Array.from(newTimes).sort().map(time => { return { value: time || 0, text: time ? dateString(new Date(time as number)) : "No Time" } }));
@@ -126,6 +132,7 @@ export default function Home() {
       setVtts(Array.from(newVtts).sort().map(vtt => { return { value: vtt, text: vtt } }));
     })
   }, []);
+
   useEffect(() => {
     if (filter.time || filter.time === 0 || filter.dm || filter.vtt || filter.name) {
       let results = sessions;
@@ -163,7 +170,7 @@ export default function Home() {
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
-            <h1 className="text-base font-semibold leading-6 text-gray-900">{sessions?.length ? `${sessions.length} ` : ""}Sessions at VDDW</h1>
+            <h1 className="text-sm font-semibold leading-6 text-gray-900">{fetchDate ? `${sessions?.length ? `${sessions.length} ` : " "}VDDW Sessions (Fetched ${shortDateString(fetchDate)})` : 'Loading...'}</h1>
         </div>
         </div>
         <div className="flex gap-4">

@@ -66,8 +66,13 @@ const toVddwSession = (session: any): VddwSession => {
 
 const url = "https://yawningportal.dnd.wizards.com/api/event?chapter=26&page_size=900&status=Live&include_cohosted_events=true&visible_on_parent_chapter_only=true&order_by=start_date&fields=title,start_date,event_type_title,cropped_picture_url,cropped_banner_url,url,cohost_registration_url,description,description_short&page=1";
 export async function GET() {
-    const res = await fetch(url);
-    const data = await res.json();
+    const { fetchDate, data } = await new Promise<{ fetchDate: number, data: any }>((resolve, reject) => {
+        fetch(url, { next: { revalidate: 120 } }).then(async rsp => {
+            const ds = rsp.headers.get("date");
+            const date = ds ? new Date(ds) : new Date();
+            resolve({ fetchDate: date.getTime(), data: await rsp.json() });
+        })
+    });
     let results: VddwSession[];
     if (data?.results?.length) {
         results = data.results.map(toVddwSession);
@@ -75,7 +80,7 @@ export async function GET() {
         results = [];
     }
   
-  return NextResponse.json({ results: results },     {
+  return NextResponse.json({ fetchDate, results: results }, {
       status: 200,
       headers: {
         'content-type': 'application/json',
