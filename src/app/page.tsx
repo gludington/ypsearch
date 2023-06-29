@@ -174,8 +174,8 @@ export default function Home() {
         </div>
         </div>
         <div className="flex gap-4">
-          <Dropdown title="Game Name" items={names} onSelect={(value) => setFilter((prev) => { return { ...prev, name: value } })} />
-          <Dropdown title="Start Time" items={times} onSelect={(value) => setFilter((prev) => { return { ...prev, time: value } })} />
+          <Dropdown title="Name" items={names} onSelect={(value) => setFilter((prev) => { return { ...prev, name: value } })} />
+          <Dropdown title="Start" items={times} onSelect={(value) => setFilter((prev) => { return { ...prev, time: value } })} />
           <Dropdown title="DM" items={dms} onSelect={(value) => setFilter((prev) => { return { ...prev, dm: value } })} />
           <Dropdown title="VTT" items={vtts} onSelect={(value) => setFilter((prev) => { return { ...prev, vtt: value } })} />
         </div>
