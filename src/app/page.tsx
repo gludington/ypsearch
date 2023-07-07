@@ -213,7 +213,7 @@ export default function Home() {
         </div>
         <div className="flex flex-col sm:flex-auto pt-2">
           <span className="leading-6 text-gray-900">Filters: {filterToString(filter)}</span>
-          {filter.time || filter.dm || filter.vtt || filter.name ? <span className="text-sm leading-6 text-gray-900">{filteredResults.length} match{filteredResults.length === 1 ? "" : "es"}</span> : null}
+          {filter.time || filter.dm || filter.vtt || filter.name || filter.hideSoldOut === true ? <span className="text-sm leading-6 text-gray-900">{filteredResults.length} match{filteredResults.length === 1 ? "" : "es"}</span> : null}
         </div>
         <div>
         </div>
