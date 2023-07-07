@@ -9,6 +9,8 @@ export type VddwSession = {
     url: string;
     description: string;
     startDate: number;
+    tags: string[];
+    soldOut: boolean;
 }
 
 type VddwSessionResponse = {
@@ -25,6 +27,8 @@ const toVddwSession = (session: any): VddwSession => {
     let dm: string | null = null;
     let vtt: string | null = null;
     let name: string | null = null;
+    
+    let soldOut: boolean = session.total_attendees && session.total_attendees >= 5 ? true : false ;
     if (titleLine.length > 0) {
         //does title contain Table #?
         if (titleLine[0].indexOf("Table #") > -1) {
@@ -60,11 +64,13 @@ const toVddwSession = (session: any): VddwSession => {
         vtt: vtt || undefined,
         url: session.url,
         description: session.description,
-        startDate: isRedCarpet ? 0 :session.start_date ? Date.parse(session.start_date) : 0
+        startDate: isRedCarpet ? 0 : session.start_date ? Date.parse(session.start_date) : 0,
+        soldOut,
+        tags: session.tags ? session.tags.filter((tag: string) => tag.indexOf("day") === -1 && tag.indexOf("UTC") === -1) : []
     };
 }
 
-const url = "https://yawningportal.dnd.wizards.com/api/event?chapter=26&page_size=900&status=Live&include_cohosted_events=true&visible_on_parent_chapter_only=true&order_by=start_date&fields=title,start_date,event_type_title,cropped_picture_url,cropped_banner_url,url,cohost_registration_url,description,description_short&page=1";
+const url = "https://yawningportal.dnd.wizards.com/api/event?chapter=26&page_size=900&status=Live&include_cohosted_events=true&visible_on_parent_chapter_only=true&order_by=start_date&fields=title,start_date,event_type_title,url,cohost_registration_url,total_attendees,tags,description_short&page=1";
 export async function GET() {
     const { fetchDate, data } = await new Promise<{ fetchDate: number, data: any }>((resolve, reject) => {
         fetch(url, { next: { revalidate: 120 } }).then(async rsp => {

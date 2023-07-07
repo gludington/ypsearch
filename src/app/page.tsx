@@ -20,9 +20,12 @@ const shortDateString = (date: Date) => {
   return date ? date.toLocaleString(navigator.language || 'en-us', { month: "short", day: "numeric", hour: "numeric", minute: "numeric" }) : "";
 }
 
-const filterToString = (filter: { name?: string | null, time?: number | null, vtt?: string | null, dm?: string | null }) =>  {
-  if (filter.time || filter.vtt || filter.dm || filter.name) {
+const filterToString = (filter: { name?: string | null, time?: number | null, vtt?: string | null, dm?: string | null, tag?: string | null}) =>  {
+  if (filter.time || filter.vtt || filter.dm || filter.name || filter.tag) {
     const ret = [];
+    if (filter.tag) {
+      ret.push(filter.tag)
+    }
     if (filter.name) {
       ret.push(filter.name)
     }
@@ -103,8 +106,9 @@ export default function Home() {
   const [dms, setDms] = useState<any>([])
   const [vtts, setVtts] = useState<any>([]);
   const [times, setTimes] = useState<any>([]);
-  const [filter, setFilter] = useState({ name: null, time: null, dm: null, vtt: null });
+  const [filter, setFilter] = useState({ name: null, time: null, dm: null, vtt: null, tag: null, hideSoldOut: false });
   const [filteredResults, setFilteredResults] = useState<ClientVddwSession[]>([]);
+  const [tags, setTags] = useState<any>([])
   
   useEffect(() => {
     axios.get('/api/sessions').then(rsp => {
@@ -113,6 +117,7 @@ export default function Home() {
       let newVtts = new Set();
       let newTimes = new Set();
       let newNames = new Set();
+      let newTags = new Set();
       rsp.data.results.forEach((session: VddwSession) => {
         const sessionDate = session.startDate ? new Date(session.startDate as number) : 0
         newResults.push({ ...session, sessionDate: sessionDate });
@@ -122,6 +127,9 @@ export default function Home() {
         newNames.add(session.name);
         newVtts.add(session.vtt || 'Unknown');
         newTimes.add(session.startDate);
+        if (session.tags?.length) {
+          session.tags.forEach(tag => newTags.add(tag));
+        }
       })
       setFetchDate(new Date(rsp.data.fetchDate));
       setSessions(newResults);
@@ -130,12 +138,18 @@ export default function Home() {
       setDms(Array.from(newDms).sort().map(dm => { return { value: dm, text: dm } }));
       setNames(Array.from(newNames).sort().map(name => { return { value: name, text: name } }));
       setVtts(Array.from(newVtts).sort().map(vtt => { return { value: vtt, text: vtt } }));
+      setTags(Array.from(newTags).sort().map(tag => { return { value: tag, text: tag } }));
     })
   }, []);
 
   useEffect(() => {
-    if (filter.time || filter.time === 0 || filter.dm || filter.vtt || filter.name) {
+    if (filter.time || filter.time === 0 || filter.dm || filter.vtt || filter.name || filter.tag || filter.hideSoldOut) {
       let results = sessions;
+      if (filter.hideSoldOut === true) {
+        results = results.filter((session: ClientVddwSession) => {
+          return session.soldOut === false;
+        });
+      }
       if (filter.time || filter.time === 0) {
         results = results.filter((session: ClientVddwSession) => {
           return filter.time === session.startDate;
@@ -156,6 +170,12 @@ export default function Home() {
           return session.name ? filter.name === session.name : false;
         });
       }
+      
+      if (filter.tag) {
+        results = results.filter((session: ClientVddwSession) => {
+          return session.tags?.length && session.tags.find(tag => tag == filter.tag)
+        });
+      }
       setFilteredResults(results || []);
     } else {
       setFilteredResults(sessions);
@@ -173,11 +193,23 @@ export default function Home() {
             <h1 className="text-sm font-semibold leading-6 text-gray-900">{fetchDate ? `${sessions?.length ? `${sessions.length} ` : " "}VDDW Sessions (Fetched ${shortDateString(fetchDate)})` : 'Loading...'}</h1>
         </div>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
+          <Dropdown title="Group" items={tags} onSelect={(value) => setFilter((prev) => { return { ...prev, tag: value } })} />
           <Dropdown title="Name" items={names} onSelect={(value) => setFilter((prev) => { return { ...prev, name: value } })} />
           <Dropdown title="Start" items={times} onSelect={(value) => setFilter((prev) => { return { ...prev, time: value } })} />
           <Dropdown title="DM" items={dms} onSelect={(value) => setFilter((prev) => { return { ...prev, dm: value } })} />
           <Dropdown title="VTT" items={vtts} onSelect={(value) => setFilter((prev) => { return { ...prev, vtt: value } })} />
+          <div>
+            <label htmlFor="soldOut" className="text-sm font-semibold leading-6 mr-2 text-gray-900">Hide Sold Out</label>
+            <input
+              id="soldOut"
+              aria-describedby="comments-description"
+              name="soldOut"
+              type="checkbox"
+              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+              onChange={evt => setFilter((prev) => { return { ...prev, hideSoldOut: evt.target.checked } })}
+            />
+          </div>
         </div>
         <div className="flex flex-col sm:flex-auto pt-2">
           <span className="leading-6 text-gray-900">Filters: {filterToString(filter)}</span>
