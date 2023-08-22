@@ -1,9 +1,35 @@
 import { NextResponse } from "next/server";
 
+const ORDINALS =
+        [
+        '1st',
+        '2nd',
+        '3rd',
+        '4th',
+        '5th',
+        '6th',
+        '7th',
+        '8th',
+        '9th',
+        '10th',
+        '11th',
+        '12th',
+        '13th',
+        '14th',
+        '15th',
+        '16th',
+        '17th',
+        '18th',
+        '19th',
+        '20th'] as const;
+
+const ORDINAL_REGEX: RegExp[] = ORDINALS.map(ord =>  new RegExp(`[^\\d](${ord}).*`));   
+    
 export type VddwSession = {
     title: string;
     name?: string;
     code?: string;
+    tier?: number;
     dm?: string;
     vtt?: string;
     url: string;
@@ -27,6 +53,7 @@ const toVddwSession = (session: any): VddwSession => {
     let dm: string | null = null;
     let vtt: string | null = null;
     let name: string | null = null;
+    let tier: number | null = null;
     
     let soldOut: boolean = session.total_attendees && session.total_attendees >= 5 ? true : false ;
     if (titleLine.length > 0) {
@@ -54,12 +81,33 @@ const toVddwSession = (session: any): VddwSession => {
     if (shortDescriptionLine.length > 0) {
         const dmSegment = shortDescriptionLine.find((desc: string | string[]) => desc.indexOf("DM: ") > -1)
         dm = dmSegment ? dmSegment.substring("DM :".length) : undefined;
+        const levels = ORDINAL_REGEX.map(ord => ord.exec(session.description_short))
+            .filter(reg => reg?.length && reg.length > 1)
+            // @ts-ignore - above prevents null
+            .map(reg => /(\d+).*/.exec(reg[1]))
+            .filter(reg => reg?.length && reg.length > 1)
+            // @ts-ignore - above prevents null
+            .map(reg => parseInt(reg[1]));
+        if (levels.length) {
+            if (levels[0] > 16) {
+                tier = 4;
+            } else if (levels[0] > 10) {
+                tier = 3;
+            } else if (levels[0] > 4) {
+                tier = 2;
+            } else {
+                tier = 1;
+            }
+        } else {
+            tier = -1;//unknown
+        }
     }
 
     return {
         title: session.title,
         name: name || undefined,
         code: code || undefined,
+        tier: tier || undefined,
         dm: dm || undefined,
         vtt: vtt || undefined,
         url: session.url,

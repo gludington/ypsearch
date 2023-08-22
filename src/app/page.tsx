@@ -1,6 +1,6 @@
 "use client"
 import axios from 'axios';
-import { useEffect, useState, Fragment, JSXElementConstructor, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal } from 'react';
+import { useEffect, useState, Fragment, JSXElementConstructor, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal, useMemo } from 'react';
 import { Dialog, Menu, Transition } from '@headlessui/react'
 import { ChevronDownIcon, QuestionMarkCircleIcon } from '@heroicons/react/20/solid'
 import { VddwSession } from './api/sessions/route';
@@ -20,11 +20,14 @@ const shortDateString = (date: Date) => {
   return date ? date.toLocaleString(navigator.language || 'en-us', { month: "short", day: "numeric", hour: "numeric", minute: "numeric" }) : "";
 }
 
-const filterToString = (filter: { name?: string | null, time?: number | null, vtt?: string | null, dm?: string | null, tag?: string | null}) =>  {
-  if (filter.time || filter.vtt || filter.dm || filter.name || filter.tag) {
+const filterToString = (filter: { name?: string | null, time?: number | null, vtt?: string | null, dm?: string | null, tier: number | null, tag?: string | null}) =>  {
+  if (filter.time || filter.vtt || filter.dm || filter.name || filter.tag || filter.tier) {
     const ret = [];
     if (filter.tag) {
       ret.push(filter.tag)
+    }
+    if (filter.tier) {
+      ret.push(`Tier ${filter.tier > 0 ? filter.tier : "Unknown"}`);
     }
     if (filter.name) {
       ret.push(filter.name)
@@ -44,7 +47,7 @@ const filterToString = (filter: { name?: string | null, time?: number | null, vt
   }
 }
 
-function Dropdown({ title, items =[], onSelect }: { title:string, items:{value:string, text: string}[], onSelect: (value: any) => void}) {
+function Dropdown({ title, items =[], onSelect }: { title:string, items:{value:string | number, text: string}[], onSelect: (value: any) => void}) {
   return (
     <Menu as="div" className="relative inline-block text-left">
       <div>
@@ -106,9 +109,12 @@ export default function Home() {
   const [dms, setDms] = useState<any>([])
   const [vtts, setVtts] = useState<any>([]);
   const [times, setTimes] = useState<any>([]);
-  const [filter, setFilter] = useState({ name: null, time: null, dm: null, vtt: null, tag: null, hideSoldOut: false });
+  const [filter, setFilter] = useState({ name: null, time: null, dm: null, vtt: null, tag: null, tier: null, hideSoldOut: false });
   const [filteredResults, setFilteredResults] = useState<ClientVddwSession[]>([]);
   const [tags, setTags] = useState<any>([])
+  const tiers = useMemo(() => {
+    return [-1, 1, 2, 3, 4].map(t => ({ value: t, text: t > 0 ? `Tier ${t}` : "Unknown"}))
+  }, []); 
   
   useEffect(() => {
     axios.get('/api/sessions').then(rsp => {
@@ -145,11 +151,16 @@ export default function Home() {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    if (filter.time || filter.time === 0 || filter.dm || filter.vtt || filter.name || filter.tag || filter.hideSoldOut) {
+    if (filter.time || filter.time === 0 || filter.dm || filter.vtt || filter.name || filter.tag || filter.tier || filter.hideSoldOut) {
       let results = sessions;
       if (filter.hideSoldOut === true) {
         results = results.filter((session: ClientVddwSession) => {
           return session.soldOut === false;
+        });
+      }
+      if (filter.tier) {
+        results = results.filter((session: ClientVddwSession) => {
+          return filter.tier === session.tier;
         });
       }
       if (filter.time || filter.time === 0) {
@@ -263,6 +274,7 @@ export default function Home() {
           <Dropdown title="Group" items={tags} onSelect={(value) => setFilter((prev) => { return { ...prev, tag: value } })} />
           <Dropdown title="Name" items={names} onSelect={(value) => setFilter((prev) => { return { ...prev, name: value } })} />
           <Dropdown title="Start" items={times} onSelect={(value) => setFilter((prev) => { return { ...prev, time: value } })} />
+          <Dropdown title="Tier" items={tiers} onSelect={(value) => setFilter((prev) => { return { ...prev, tier: value } })} />
           <Dropdown title="DM" items={dms} onSelect={(value) => setFilter((prev) => { return { ...prev, dm: value } })} />
           <Dropdown title="VTT" items={vtts} onSelect={(value) => setFilter((prev) => { return { ...prev, vtt: value } })} />
           <div>
@@ -277,13 +289,13 @@ export default function Home() {
             />
           </div>
         </div>
-        <div className="flex flex-col sm:flex-auto pt-2">
+        <div className="text-sm flex flex-col sm:flex-auto pt-2">
           <span className="leading-6 text-gray-900">Filters: {filterToString(filter)}</span>
-          {filter.tag || filter.time || filter.dm || filter.vtt || filter.name || filter.hideSoldOut === true? <span className="text-sm leading-6 text-gray-900">{filteredResults.length} match{filteredResults.length === 1 ? "" : "es"}</span> : null}
+          {filter.tag || filter.time || filter.dm || filter.vtt || filter.name || filter.tier || filter.hideSoldOut === true? <span className="leading-6 text-gray-900">{filteredResults.length} match{filteredResults.length === 1 ? "" : "es"}</span> : null}
         </div>
         <div>
         </div>
-      <div className="mt-8 flow-root">
+      <div className="mt-4 flow-root">
         <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
             <table className="min-w-full divide-y divide-gray-300">
