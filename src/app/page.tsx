@@ -336,7 +336,7 @@ export default function Home() {
         </div>
         <div className="flex flex-wrap gap-4">
           <Dropdown title="Group" items={data?.tags ?? []} onSelect={(value) => setFilter((prev) => { return { ...prev, tag: value } })} />
-          <Dropdown title="Tier" items={data?.tiers  ?? []} onSelect={(value) => setFilter((prev) => { return { ...prev, tier: value } })} />
+          <Dropdown title="Tier" items={tiers  ?? []} onSelect={(value) => setFilter((prev) => { return { ...prev, tier: value } })} />
           <Dropdown title="Name" items={data?.names ?? []} onSelect={(value) => setFilter((prev) => { return { ...prev, name: value } })} />
           <Dropdown title="Start" items={data?.times ?? []} onSelect={(value) => setFilter((prev) => { return { ...prev, time: value } })} />
           <Dropdown title="DM" items={data?.dms ?? []} onSelect={(value) => setFilter((prev) => { return { ...prev, dm: value } })} />
