@@ -1,11 +1,11 @@
 "use client"
 import axios from 'axios';
-import { useEffect, useState, Fragment, useCallback, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal, useMemo } from 'react';
+import { useEffect, useState, Fragment, useMemo } from 'react';
 import { Dialog, Menu, Transition } from '@headlessui/react'
 import { ChevronDownIcon, QuestionMarkCircleIcon } from '@heroicons/react/20/solid'
 import { VddwSession } from './api/sessions/route';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
+import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css'
 
 type ClientVddwSession = VddwSession & { sessionDate: Date }
@@ -178,13 +178,6 @@ export default function Home() {
   const { push } = useRouter();
   const searchParams = useSearchParams();
   const pathName = usePathname();
-
-  const [sessions, setSessions] = useState<ClientVddwSession[]>([]);
-  const [fetchDate, setFetchDate] = useState<Date>(); 
-  const [names, setNames] = useState<any>([]); 
-  const [dms, setDms] = useState<any>([])
-  const [vtts, setVtts] = useState<any>([]);
-  const [times, setTimes] = useState<any>([]);
   const [filter, setFilter] = useState<FilterType>({
     name: searchParams.get("name"),
     time: searchParams.has("time") ? parseInt(searchParams.get("time") as string) : null,
@@ -192,15 +185,14 @@ export default function Home() {
     tier: searchParams.has("tier") ? parseInt(searchParams.get("tier") as string) : 0,
     hideSoldOut: searchParams.has("hideSoldOut")
   });
-  
-  const { data, isLoading } = useFetchData();
-  
-  const [filteredResults, setFilteredResults] = useState<ClientVddwSession[]>([
-  emptyResult, emptyResult, emptyResult, emptyResult, emptyResult, emptyResult, emptyResult]);
-  const [tags, setTags] = useState<any>([])
   const tiers = useMemo(() => {
     return [-1, 1, 2, 3, 4].map(t => ({ value: t, text: t > 0 ? `Tier ${t}` : "Unknown"}))
   }, []); 
+
+  const { data, isLoading } = useFetchData();
+  
+  const [filteredResults, setFilteredResults] = useState<ClientVddwSession[]>([
+    emptyResult, emptyResult, emptyResult, emptyResult, emptyResult, emptyResult, emptyResult]);
   
   const [showModal, setShowModal] = useState(false);
 
