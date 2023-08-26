@@ -5,6 +5,8 @@ import { Dialog, Menu, Transition } from '@headlessui/react'
 import { ChevronDownIcon, QuestionMarkCircleIcon } from '@heroicons/react/20/solid'
 import { VddwSession } from './api/sessions/route';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css'
 
 type ClientVddwSession = VddwSession & { sessionDate: Date }
 
@@ -21,6 +23,51 @@ type FilterType = {
   tag?: string | null;
   hideSoldOut?: boolean | null;
 }
+
+function useFetchData() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [data, setData] = useState<any>(null);
+  
+  useEffect(() => {
+    axios.get('/api/sessions').then(rsp => {
+      let newResults: any[] = [];
+      let newDms = new Set();
+      let newVtts = new Set();
+      let newTimes = new Set();
+      let newNames = new Set();
+      let newTags = new Set();
+      rsp.data.results.forEach((session: VddwSession) => {
+        const sessionDate = session.startDate ? new Date(session.startDate as number) : 0
+        newResults.push({ ...session, sessionDate: sessionDate });
+        if (session.dm) {
+          newDms.add(session.dm);
+        }
+        newNames.add(session.name);
+        newVtts.add(session.vtt || 'Unknown');
+        newTimes.add(session.startDate);
+        if (session.tags?.length) {
+          session.tags.forEach(tag => newTags.add(tag));
+        }
+      })
+      setData({
+        fetchDate: new Date(rsp.data.fetchDate),
+        sessions: newResults,
+        times: Array.from(newTimes).sort().map(time => { return { value: time || 0, text: time ? dateString(new Date(time as number)) : "No Time" } }),
+        dms: Array.from(newDms).sort().map(dm => { return { value: dm, text: dm } }),
+        names: Array.from(newNames).sort().map(name => { return { value: name, text: name } }),
+        vtts: Array.from(newVtts).sort().map(vtt => { return { value: vtt, text: vtt } }),
+        tags: Array.from(newTags).sort().map(tag => { return { value: tag, text: tag } })
+      });
+      setIsLoading(false);
+    });
+  }, []);
+
+  return {
+    isLoading,
+    data
+  }
+}
+
 
 function classNames(...classes: any) {
   return classes.filter(Boolean).join(' ')
@@ -117,6 +164,16 @@ function Dropdown({ title, items =[], onSelect }: { title:string, items:{value:s
     </Menu>
   )
 }
+const emptyResult: ClientVddwSession = {
+  title: "",
+  url: "",
+  description: "",
+  startDate: 0,
+  sessionDate: new Date(),
+  tags: [],
+  soldOut: false
+}
+
 export default function Home() {
   const { push } = useRouter();
   const searchParams = useSearchParams();
@@ -136,103 +193,74 @@ export default function Home() {
     hideSoldOut: searchParams.has("hideSoldOut")
   });
   
-  const [filteredResults, setFilteredResults] = useState<ClientVddwSession[]>([]);
+  const { data, isLoading } = useFetchData();
+  
+  const [filteredResults, setFilteredResults] = useState<ClientVddwSession[]>([
+  emptyResult, emptyResult, emptyResult, emptyResult, emptyResult, emptyResult, emptyResult]);
   const [tags, setTags] = useState<any>([])
   const tiers = useMemo(() => {
     return [-1, 1, 2, 3, 4].map(t => ({ value: t, text: t > 0 ? `Tier ${t}` : "Unknown"}))
   }, []); 
   
-  useEffect(() => {    
-    axios.get('/api/sessions').then(rsp => {
-      let newResults: any[] = [];
-      let newDms = new Set();
-      let newVtts = new Set();
-      let newTimes = new Set();
-      let newNames = new Set();
-      let newTags = new Set();
-      rsp.data.results.forEach((session: VddwSession) => {
-        const sessionDate = session.startDate ? new Date(session.startDate as number) : 0
-        newResults.push({ ...session, sessionDate: sessionDate });
-        if (session.dm) {
-          newDms.add(session.dm);
-        }
-        newNames.add(session.name);
-        newVtts.add(session.vtt || 'Unknown');
-        newTimes.add(session.startDate);
-        if (session.tags?.length) {
-          session.tags.forEach(tag => newTags.add(tag));
-        }
-      })
-      setFetchDate(new Date(rsp.data.fetchDate));
-      setSessions(newResults);
-      setFilteredResults(newResults);
-      setTimes(Array.from(newTimes).sort().map(time => { return { value: time || 0, text: time ? dateString(new Date(time as number)) : "No Time" } }));
-      setDms(Array.from(newDms).sort().map(dm => { return { value: dm, text: dm } }));
-      setNames(Array.from(newNames).sort().map(name => { return { value: name, text: name } }));
-      setVtts(Array.from(newVtts).sort().map(vtt => { return { value: vtt, text: vtt } }));
-      setTags(Array.from(newTags).sort().map(tag => { return { value: tag, text: tag } }));
-    })
-  }, []);
-
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    if (filter.time || filter.time === 0 || filter.dm || filter.vtt || filter.name || filter.tag || filter.tier || filter.hideSoldOut) {
-      let results = sessions;
-      let qs: Partial<FilterType> = {};
-      if (filter.hideSoldOut === true) {
-        qs.hideSoldOut = true;
-        results = results.filter((session: ClientVddwSession) => {
-          return session.soldOut === false;
-        });
-      }
-      if (filter.tier) {
-        qs.tier = filter.tier;
-        results = results.filter((session: ClientVddwSession) => {
-          return filter.tier === session.tier;
-        });
-      }
-      if (filter.time || filter.time === 0) {
-        qs.time = filter.time;
-        results = results.filter((session: ClientVddwSession) => {
-          return filter.time === session.startDate;
-        })
-      }
-      if (filter.dm) {
-        qs.dm = filter.dm;
-        results = results.filter((session:ClientVddwSession) => {
-          return session.dm ? filter.dm === session.dm : false;
-        });
-      }
-      if (filter.vtt) {
-        qs.vtt = filter.vtt;
-        results = results.filter((session: ClientVddwSession) => {
-          return session.vtt ? filter.vtt === session.vtt : false;
-        });
-      }
-      if (filter.name) {
-        qs.name = filter.name;
-        results = results.filter((session: ClientVddwSession) => {
-          return session.name ? filter.name === session.name : false;
-        });
-      }
+    if (!isLoading) {
+      if (filter.time || filter.time === 0 || filter.dm || filter.vtt || filter.name || filter.tag || filter.tier || filter.hideSoldOut) {
+        let results = data.sessions;
+        let qs: Partial<FilterType> = {};
+        if (filter.hideSoldOut === true) {
+          qs.hideSoldOut = true;
+          results = results.filter((session: ClientVddwSession) => {
+            return session.soldOut === false;
+          });
+        }
+        if (filter.tier) {
+          qs.tier = filter.tier;
+          results = results.filter((session: ClientVddwSession) => {
+            return filter.tier === session.tier;
+          });
+        }
+        if (filter.time || filter.time === 0) {
+          qs.time = filter.time;
+          results = results.filter((session: ClientVddwSession) => {
+            return filter.time === session.startDate;
+          })
+        }
+        if (filter.dm) {
+          qs.dm = filter.dm;
+          results = results.filter((session: ClientVddwSession) => {
+            return session.dm ? filter.dm === session.dm : false;
+          });
+        }
+        if (filter.vtt) {
+          qs.vtt = filter.vtt;
+          results = results.filter((session: ClientVddwSession) => {
+            return session.vtt ? filter.vtt === session.vtt : false;
+          });
+        }
+        if (filter.name) {
+          qs.name = filter.name;
+          results = results.filter((session: ClientVddwSession) => {
+            return session.name ? filter.name === session.name : false;
+          });
+        }
       
-      if (filter.tag) {
-        qs.tag = filter.tag;
-        results = results.filter((session: ClientVddwSession) => {
-          return session.tags?.length && session.tags.find(tag => tag == filter.tag)
-        });
+        if (filter.tag) {
+          qs.tag = filter.tag;
+          results = results.filter((session: ClientVddwSession) => {
+            return session.tags?.length && session.tags.find(tag => tag == filter.tag)
+          });
+        }
+        push(`${pathName}?${new URLSearchParams(qs as any).toString()}`);
+        setFilteredResults(results || []);
+      } else {
+        push(pathName);
+        setFilteredResults(data.sessions);
       }
-      push(`${pathName}?${new URLSearchParams(qs as any).toString()}`);
-      setFilteredResults(results || []);
-    } else {
-      push(pathName);
-      setFilteredResults(sessions);
     }
-  }, [ filter, sessions, push])
-  if (!sessions) {
-    return <h2>Loading...</h2>
-  }
+  }, [ filter, isLoading, data?.sessions, push, pathName])
+
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between">
@@ -299,20 +327,20 @@ export default function Home() {
   ) : null}
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="sm:flex sm:items-center">
-          {fetchDate ? (
+          {!isLoading ? (
             <div className="flex flex-nowrap gap-4">
-              <h1 className="text-sm font-semibold leading-6 text-gray-900 whitespace-nowrap">{sessions?.length ? `${sessions.length} ` : " "}VDDW Sessions (Fetched {shortDateString(fetchDate)})</h1>
+              <h1 className="text-sm font-semibold leading-6 text-gray-900 whitespace-nowrap">{data.sessions.length ? `${data.sessions.length} ` : " "}VDDW Sessions (Fetched {shortDateString(data.fetchDate)})</h1>
               <QuestionMarkCircleIcon className="text-gray-900 h-4 w-4" onClick={() => setShowModal(true)}/>
             </div>
             ) : <div className="text-sm font-semibold leading-6 text-gray-900 whitespace-nowrap">Loading...</div>}
         </div>
         <div className="flex flex-wrap gap-4">
-          <Dropdown title="Group" items={tags} onSelect={(value) => setFilter((prev) => { return { ...prev, tag: value } })} />
-          <Dropdown title="Tier" items={tiers} onSelect={(value) => setFilter((prev) => { return { ...prev, tier: value } })} />
-          <Dropdown title="Name" items={names} onSelect={(value) => setFilter((prev) => { return { ...prev, name: value } })} />
-          <Dropdown title="Start" items={times} onSelect={(value) => setFilter((prev) => { return { ...prev, time: value } })} />
-          <Dropdown title="DM" items={dms} onSelect={(value) => setFilter((prev) => { return { ...prev, dm: value } })} />
-          <Dropdown title="VTT" items={vtts} onSelect={(value) => setFilter((prev) => { return { ...prev, vtt: value } })} />
+          <Dropdown title="Group" items={data?.tags ?? []} onSelect={(value) => setFilter((prev) => { return { ...prev, tag: value } })} />
+          <Dropdown title="Tier" items={data?.tiers  ?? []} onSelect={(value) => setFilter((prev) => { return { ...prev, tier: value } })} />
+          <Dropdown title="Name" items={data?.names ?? []} onSelect={(value) => setFilter((prev) => { return { ...prev, name: value } })} />
+          <Dropdown title="Start" items={data?.times ?? []} onSelect={(value) => setFilter((prev) => { return { ...prev, time: value } })} />
+          <Dropdown title="DM" items={data?.dms ?? []} onSelect={(value) => setFilter((prev) => { return { ...prev, dm: value } })} />
+          <Dropdown title="VTT" items={data?.vtts  ?? []} onSelect={(value) => setFilter((prev) => { return { ...prev, vtt: value } })} />
           <div>
             <label htmlFor="soldOut" className="text-sm font-semibold leading-6 mr-2 text-gray-900">Hide Sold Out</label>
             <input
@@ -328,7 +356,7 @@ export default function Home() {
         </div>
         <div className="text-sm flex flex-col sm:flex-auto pt-2">
           <span className="leading-6 text-gray-900">Filters: {filterToString(filter)}</span>
-          {filter.tag || filter.time || filter.dm || filter.vtt || filter.name || filter.tier || filter.hideSoldOut === true? <span className="leading-6 text-gray-900">{filteredResults.length} match{filteredResults.length === 1 ? "" : "es"}</span> : null}
+          {filter.tag || filter.time || filter.dm || filter.vtt || filter.name || filter.tier || filter.hideSoldOut === true ? <span className="leading-6 text-gray-900">{isLoading ? <Skeleton width={140} /> : <>{filteredResults.length} match{filteredResults.length === 1 ? "" : "es"}</>}</span> : null}
         </div>
         <div>
         </div>
@@ -356,11 +384,11 @@ export default function Home() {
                 {filteredResults.map((session: ClientVddwSession, idx: any) => (
                   <tr key={`${session.name}-${idx}`}>
                     <td className="py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-0">
-                      <a className="text-indigo-600 hover:text-indigo-900" href={session.url} target="_new">{session.title}</a>
+                      {isLoading ? <Skeleton width={300} /> : <a className="text-indigo-600 hover:text-indigo-900" href={session.url} target="_new">{session.title}</a>}
                     </td>
-                    <td className="text-sm text-gray-500">{dateString(session.sessionDate)}</td>
-                    <td className="text-sm text-gray-500">{session.dm}</td>
-                    <td className="text-sm text-gray-500">{session.vtt}</td>
+                    <td className="text-sm text-gray-500">{isLoading ? <Skeleton width={100}/> : dateString(session.sessionDate)}</td>
+                    <td className="text-sm text-gray-500">{isLoading ? <Skeleton width={100}/> : session.dm}</td>
+                    <td className="text-sm text-gray-500">{isLoading ? <Skeleton width={100}/> : session.vtt}</td>
                   </tr>
                 ))}
               </tbody>
