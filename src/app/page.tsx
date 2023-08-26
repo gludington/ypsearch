@@ -1,11 +1,26 @@
 "use client"
 import axios from 'axios';
-import { useEffect, useState, Fragment, JSXElementConstructor, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal, useMemo } from 'react';
+import { useEffect, useState, Fragment, useCallback, PromiseLikeOfReactNode, ReactElement, ReactNode, ReactPortal, useMemo } from 'react';
 import { Dialog, Menu, Transition } from '@headlessui/react'
 import { ChevronDownIcon, QuestionMarkCircleIcon } from '@heroicons/react/20/solid'
 import { VddwSession } from './api/sessions/route';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 
 type ClientVddwSession = VddwSession & { sessionDate: Date }
+
+const Filters = [
+  "name", "time", "vtt", "dm", "tier", "tag", "hideSoldOut"
+] as const ;
+
+type FilterType = {
+  name?: string | null;
+  time?: number | null;
+  vtt?: string | null;
+  dm?: string | null;
+  tier?: number | null;
+  tag?: string | null;
+  hideSoldOut?: boolean | null;
+}
 
 function classNames(...classes: any) {
   return classes.filter(Boolean).join(' ')
@@ -20,7 +35,7 @@ const shortDateString = (date: Date) => {
   return date ? date.toLocaleString(navigator.language || 'en-us', { month: "short", day: "numeric", hour: "numeric", minute: "numeric" }) : "";
 }
 
-const filterToString = (filter: { name?: string | null, time?: number | null, vtt?: string | null, dm?: string | null, tier: number | null, tag?: string | null}) =>  {
+const filterToString = (filter: FilterType) =>  {
   if (filter.time || filter.vtt || filter.dm || filter.name || filter.tag || filter.tier) {
     const ret = [];
     if (filter.tag) {
@@ -103,20 +118,31 @@ function Dropdown({ title, items =[], onSelect }: { title:string, items:{value:s
   )
 }
 export default function Home() {
+  const { push } = useRouter();
+  const searchParams = useSearchParams();
+  const pathName = usePathname();
+
   const [sessions, setSessions] = useState<ClientVddwSession[]>([]);
   const [fetchDate, setFetchDate] = useState<Date>(); 
   const [names, setNames] = useState<any>([]); 
   const [dms, setDms] = useState<any>([])
   const [vtts, setVtts] = useState<any>([]);
   const [times, setTimes] = useState<any>([]);
-  const [filter, setFilter] = useState({ name: null, time: null, dm: null, vtt: null, tag: null, tier: null, hideSoldOut: false });
+  const [filter, setFilter] = useState<FilterType>({
+    name: searchParams.get("name"),
+    time: searchParams.has("time") ? parseInt(searchParams.get("time") as string) : null,
+    dm: searchParams.get("dm"), vtt: searchParams.get("vtt"), tag: searchParams.get("tag"),
+    tier: searchParams.has("tier") ? parseInt(searchParams.get("tier") as string) : 0,
+    hideSoldOut: searchParams.has("hideSoldOut")
+  });
+  
   const [filteredResults, setFilteredResults] = useState<ClientVddwSession[]>([]);
   const [tags, setTags] = useState<any>([])
   const tiers = useMemo(() => {
     return [-1, 1, 2, 3, 4].map(t => ({ value: t, text: t > 0 ? `Tier ${t}` : "Unknown"}))
   }, []); 
   
-  useEffect(() => {
+  useEffect(() => {    
     axios.get('/api/sessions').then(rsp => {
       let newResults: any[] = [];
       let newDms = new Set();
@@ -153,47 +179,57 @@ export default function Home() {
   useEffect(() => {
     if (filter.time || filter.time === 0 || filter.dm || filter.vtt || filter.name || filter.tag || filter.tier || filter.hideSoldOut) {
       let results = sessions;
+      let qs: Partial<FilterType> = {};
       if (filter.hideSoldOut === true) {
+        qs.hideSoldOut = true;
         results = results.filter((session: ClientVddwSession) => {
           return session.soldOut === false;
         });
       }
       if (filter.tier) {
+        qs.tier = filter.tier;
         results = results.filter((session: ClientVddwSession) => {
           return filter.tier === session.tier;
         });
       }
       if (filter.time || filter.time === 0) {
+        qs.time = filter.time;
         results = results.filter((session: ClientVddwSession) => {
           return filter.time === session.startDate;
         })
       }
       if (filter.dm) {
+        qs.dm = filter.dm;
         results = results.filter((session:ClientVddwSession) => {
           return session.dm ? filter.dm === session.dm : false;
         });
       }
       if (filter.vtt) {
+        qs.vtt = filter.vtt;
         results = results.filter((session: ClientVddwSession) => {
           return session.vtt ? filter.vtt === session.vtt : false;
         });
       }
       if (filter.name) {
+        qs.name = filter.name;
         results = results.filter((session: ClientVddwSession) => {
           return session.name ? filter.name === session.name : false;
         });
       }
       
       if (filter.tag) {
+        qs.tag = filter.tag;
         results = results.filter((session: ClientVddwSession) => {
           return session.tags?.length && session.tags.find(tag => tag == filter.tag)
         });
       }
+      push(`${pathName}?${new URLSearchParams(qs as any).toString()}`);
       setFilteredResults(results || []);
     } else {
+      push(pathName);
       setFilteredResults(sessions);
     }
-  }, [ filter, sessions])
+  }, [ filter, sessions, push])
   if (!sessions) {
     return <h2>Loading...</h2>
   }
@@ -285,6 +321,7 @@ export default function Home() {
               name="soldOut"
               type="checkbox"
               className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+              checked={filter.hideSoldOut === true}
               onChange={evt => setFilter((prev) => { return { ...prev, hideSoldOut: evt.target.checked } })}
             />
           </div>
