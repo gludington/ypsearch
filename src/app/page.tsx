@@ -38,12 +38,13 @@ function useFetchData() {
       let newTags = new Set();
       rsp.data.results.forEach((session: VddwSession) => {
         const sessionDate = session.startDate ? new Date(session.startDate as number) : 0
-        newResults.push({ ...session, sessionDate: sessionDate });
+        const vtt = session.vtt || 'Unknown';
+        newResults.push({ ...session, vtt: vtt, sessionDate: sessionDate });
         if (session.dm) {
           newDms.add(session.dm);
         }
         newNames.add(session.name);
-        newVtts.add(session.vtt || 'Unknown');
+        newVtts.add(vtt);
         newTimes.add(session.startDate);
         if (session.tags?.length) {
           session.tags.forEach(tag => newTags.add(tag));
