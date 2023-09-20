@@ -38,13 +38,12 @@ function useFetchData() {
       let newTags = new Set();
       rsp.data.results.forEach((session: VddwSession) => {
         const sessionDate = session.startDate ? new Date(session.startDate as number) : 0
-        const vtt = session.vtt || 'Unknown';
-        newResults.push({ ...session, vtt: vtt, sessionDate: sessionDate });
+        newResults.push({ ...session, sessionDate: sessionDate });
         if (session.dm) {
           newDms.add(session.dm);
         }
         newNames.add(session.name);
-        newVtts.add(vtt);
+        newVtts.add(session.vtt || 'Unknown');
         newTimes.add(session.startDate);
         if (session.tags?.length) {
           session.tags.forEach(tag => newTags.add(tag));
@@ -228,8 +227,9 @@ export default function Home() {
         }
         if (filter.vtt) {
           qs.vtt = filter.vtt;
+          const filterVtt = filter.vtt === 'Unknown' ? undefined : filter.vtt;
           results = results.filter((session: ClientVddwSession) => {
-            return session.vtt ? filter.vtt === session.vtt : false;
+            return filterVtt === session.vtt;
           });
         }
         if (filter.name) {
