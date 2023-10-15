@@ -1,7 +1,6 @@
 import './globals.css'
 import { Inter } from 'next/font/google'
 const inter = Inter({ subsets: ['latin'] })
-import { SkeletonTheme } from 'react-loading-skeleton';
 
 export const metadata = {
   title: 'Quickie VDDW Search',
@@ -15,8 +14,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <SkeletonTheme baseColor="#4400cc" highlightColor="#444">{children}</SkeletonTheme>
+      <body className={`min-h-screen bg-gray-100 flex flex-col ${inter.className}`}>
+        {children}
       </body>
     </html>
   )

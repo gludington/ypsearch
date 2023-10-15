@@ -19,3 +19,19 @@
 body {
   color: rgb(var(--foreground-rgb));
 }
+
+.custom-gradient {
+  background: linear-gradient(90deg, #4400cc 25%, #444 75%);
+  background-size: 200% 100%;
+  animation: gradient 4.5s linear infinite;
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
