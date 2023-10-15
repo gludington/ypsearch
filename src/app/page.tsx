@@ -347,7 +347,7 @@ export default function Home() {
                 </div>
 
             </header>
-            <main className="flex-grow p-4 sm:p-6 overflow-x-auto">
+            <main className="flex-grow px-2 sm:px-6 overflow-auto">
                 <div className="overflow-y-auto">
                     <table className="min-w-full divide-gray-300">
                         <thead>
