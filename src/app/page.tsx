@@ -109,15 +109,29 @@ const filterToString = (filter: FilterType) =>  {
   }
 }
 
-function Dropdown({ title, items =[], onSelect }: { title:string, items:{value:string | number, text: string}[], onSelect: (value: any) => void}) {
-  const [selected, setSelected] = useState({ value: "", text:  `${title} (Any)` })
+function findByValue(items: { value: string | number, text: string }[], value: string | number) {
+  return items.find(item => item.value === value);
+}
+
+function Dropdown({ title, initial, items =[], onSelect }: { title:string, initial: string | number, items:{value:string | number, text: string}[], onSelect: (value: any) => void}) {
+  const [selected, setSelected] = useState(initial ? findByValue(items, initial) : { value: "", text:  `${title} (Any)` })
   const [query, setQuery] = useState('');
-  const filteredItems =
-    query === ''
-      ? [{ value: "", text: `${title} (Any)` }, ...items]
+  const filteredItems = [{ value: "", text: `${title} (Any)` }, 
+    ...(query === ''
+      ? items
       : items.filter((item) => {
-          return item.text.toLowerCase().includes(query)
-      })
+          return item.text.toLowerCase().includes(query.toLowerCase())
+      }))]
+  useEffect(() => {
+    const item = findByValue(items, initial);
+    if (item) {
+      setQuery(item.text.toLowerCase())
+      setSelected(item);
+    } else {
+      setQuery("")
+    }
+      
+  }, [items, initial])
   
   return (
       <div className="relative inline-block text-left w-24">
@@ -352,12 +366,12 @@ export default function Home() {
             ) : <div className="text-sm font-semibold leading-6 text-gray-900 whitespace-nowrap">Loading...</div>}
         </div>
         <div className="flex flex-wrap gap-4">
-          <Dropdown title="Group" items={data?.tags ?? []} onSelect={(value) => setFilter((prev) => { return { ...prev, tag: value } })} />
-          <Dropdown title="Tier" items={tiers  ?? []} onSelect={(value) => setFilter((prev) => { return { ...prev, tier: value } })} />
-          <Dropdown title="Name" items={data?.names ?? []} onSelect={(value) => setFilter((prev) => { return { ...prev, name: value } })} />
-          <Dropdown title="Start" items={data?.times ?? []} onSelect={(value) => setFilter((prev) => { return { ...prev, time: value } })} />
-          <Dropdown title="DM" items={data?.dms ?? []} onSelect={(value) => setFilter((prev) => { return { ...prev, dm: value } })} />
-          <Dropdown title="VTT" items={data?.vtts  ?? []} onSelect={(value) => setFilter((prev) => { return { ...prev, vtt: value } })} />
+          <Dropdown title="Group" items={data?.tags ?? []} initial={filter.tag || ""}  onSelect={(value) => setFilter((prev) => { return { ...prev, tag: value } })} />
+          <Dropdown title="Tier" items={tiers ?? []} initial={filter.tier ? filter.tier : ""}  onSelect={(value) => setFilter((prev) => { return { ...prev, tier: value } })} />
+          <Dropdown title="Name" items={data?.names ?? []} initial={filter.name || ""}  onSelect={(value) => setFilter((prev) => { return { ...prev, name: value } })} />
+          <Dropdown title="Start" items={data?.times ?? []} initial={filter.time ? filter.time : ""} onSelect={(value) => setFilter((prev) => { return { ...prev, time: value } })} />
+          <Dropdown title="DM" items={data?.dms ?? []} initial={filter.dm || ""} onSelect={(value) => setFilter((prev) => { return { ...prev, dm: value } })} />
+          <Dropdown title="VTT" items={data?.vtts ?? []} initial={filter.vtt || ""} onSelect={(value) => setFilter((prev) => { return { ...prev, vtt: value } })} />
           <div>
             <label htmlFor="soldOut" className="text-sm font-semibold leading-6 mr-2 text-gray-900">Hide Sold Out</label>
             <input
