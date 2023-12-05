@@ -135,12 +135,13 @@ function Dropdown({ title, initial, items =[], onSelect }: { title:string, initi
   
   return (
       <div className="relative inline-block text-left w-24">
-        <Combobox value={selected} onChange={(item) => { setSelected(item); onSelect(item.value) }}>
+      <Combobox value={selected} onChange={(item) => { setSelected(item); onSelect(item.value) }}>
         <div className="relative mt-1">
           <div className="relative cursor-default overflow-hidden rounded-lg bg-white text-left shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75 focus-visible:ring-offset-2 focus-visible:ring-offset-indigo-300 sm:text-sm">
             <Combobox.Input
               className="w-full border-none py-2 pl-3 pr-10 text-sm leading-5 text-gray-900 focus:ring-0"
-              displayValue={(item: { text: string}) => item.text}
+              displayValue={(item: { text: string }) => item.text}
+              onFocusCapture={(evt) => evt.target.select()}
               onChange={(event) => setQuery(event.target.value)}
             />
             <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
