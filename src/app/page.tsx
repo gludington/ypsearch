@@ -38,7 +38,7 @@ function useFetchData() {
       let newTags = new Set();
       rsp.data.results.forEach((session: VddwSession) => {
         let sessionFloor = session.startDate ? session.startDate - session.startDate % 60000 : 0
-        newResults.push({ ...session, sessionDate: sessionFloor ? new Date(sessionFloor) : 0});
+        newResults.push({ ...session, startDate: sessionFloor ? sessionFloor : 0 });
         if (session.dm) {
           newDms.add(session.dm);
         }
