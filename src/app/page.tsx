@@ -8,7 +8,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css'
 
-type ClientVddwSession = VddwSession & { sessionDate: Date }
+type ClientVddwSession = VddwSession & { sessionDate: Date, sessionDay?: string }
 
 const Filters = [
   "name", "time", "vtt", "dm", "tier", "tag", "hideSoldOut"
@@ -16,13 +16,15 @@ const Filters = [
 
 type FilterType = {
   name?: string | null;
-  time?: number | null;
+  time?: string | null;
+  dt?: string | null;
   vtt?: string | null;
   dm?: string | null;
   tier?: number | null;
   tag?: string | null;
   hideSoldOut?: boolean | null;
 }
+
 
 function useFetchData() {
   const [isLoading, setIsLoading] = useState(true);
@@ -37,23 +39,57 @@ function useFetchData() {
       let newNames = new Set();
       let newTags = new Set();
       rsp.data.results.forEach((session: VddwSession) => {
-        let sessionFloor = session.startDate ? session.startDate - session.startDate % 60000 : 0
-        newResults.push({ ...session, sessionDate: sessionFloor ? new Date(sessionFloor) : 0 });
+        let sessionFloor;
+        let sessionDate;
+        let sessionDay;
+        if (session.startDate) {
+          sessionFloor = session.startDate - session.startDate % 60000;
+          sessionDate = new Date(sessionFloor);
+          sessionDay = dateString(sessionDate);
+        } else {
+          sessionFloor = 0;
+          sessionDate = 0;
+          sessionDay = undefined;
+        }
+        newResults.push({ ...session, sessionDate, sessionDay});
+      
         if (session.dm) {
           newDms.add(session.dm);
         }
         newNames.add(session.name);
         newVtts.add(session.vtt || 'Unknown');
+        newTimes.add(sessionDay);
         newTimes.add(sessionFloor);
         if (session.tags?.length) {
           session.tags.forEach(tag => newTags.add(tag));
         }
       })
-      
+      let times:{value: string, text: string}[] = [];
+      let prev: string | undefined = undefined;
+      Array.from(newTimes).sort().forEach((time) => {
+        let dayStr;
+        let dateStr; 
+        if (time) {
+          const date = new Date(time as number);
+          dayStr = dayString(date);
+          dateStr = dateString(date);
+          if (prev === undefined || dayStr !== prev) {
+            times.push({ value: "all_" + dayStr, text: dayStr })
+          }
+          prev = dayStr;
+        } else {
+          dayStr = "No Time";
+          dateStr = "No Time";
+        }
+        times.push({ value: dateStr, text: dateStr })
+      })
       setData({
         fetchDate: new Date(rsp.data.fetchDate),
         sessions: newResults,
-        times: Array.from(newTimes).sort().map(time => { return { value: time || 0, text: time ? dateString(new Date(time as number)) : "No Time" } }),
+        times: Array.from(newTimes).sort().map(time => {
+          return { value: time || 0, text: time ? dateString(new Date(time as number)) : "No Time" }
+        }),
+        dts: times,
         dms: Array.from(newDms).sort().map(dm => { return { value: dm, text: dm } }),
         names: Array.from(newNames).sort().map(name => { return { value: name, text: name } }),
         vtts: Array.from(newVtts).sort().map(vtt => { return { value: vtt, text: vtt } }),
@@ -83,8 +119,13 @@ const shortDateString = (date: Date) => {
   return date ? date.toLocaleString(navigator.language || 'en-us', { month: "short", day: "numeric", hour: "numeric", minute: "numeric" }) : "";
 }
 
+const dayString = (date: Date) => {
+  return date ? date.toLocaleString(navigator.language || 'en-us', {weekday: "long", day: "numeric", month: "short", }) : "";
+}
+
+
 const filterToString = (filter: FilterType) =>  {
-  if (filter.time || filter.vtt || filter.dm || filter.name || filter.tag || filter.tier) {
+  if (filter.time || filter.dt || filter.vtt || filter.dm || filter.name || filter.tag || filter.tier) {
     const ret = [];
     if (filter.tag) {
       ret.push(filter.tag)
@@ -95,8 +136,8 @@ const filterToString = (filter: FilterType) =>  {
     if (filter.name) {
       ret.push(filter.name)
     }
-    if (filter.time) {
-        ret.push(`at ${dateString(new Date(filter.time))}`)
+    if (filter.dt) {
+      ret.push(filter.dt.indexOf("all_") > -1 ? `on ${filter.dt.substring(4)}` : filter.dt === "0" ? "No Time" : `at ${filter.dt}`)
     }
     if (filter.dm) {
       ret.push(`with ${filter.dm}`)
@@ -210,8 +251,10 @@ const emptyResult: ClientVddwSession = {
   description: "",
   startDate: 0,
   sessionDate: new Date(),
+  sessionDay: undefined,
   tags: [],
-  soldOut: false
+  soldOut: false,
+  cancelled: false,
 }
 
 export default function Home() {
@@ -220,7 +263,8 @@ export default function Home() {
   const pathName = usePathname();
   const [filter, setFilter] = useState<FilterType>({
     name: searchParams.get("name"),
-    time: searchParams.has("time") ? parseInt(searchParams.get("time") as string) : null,
+    time: searchParams.has("time") ? searchParams.get("time") : null,
+    dt: searchParams.has("dt") ? searchParams.get("dt") : null,
     dm: searchParams.get("dm"), vtt: searchParams.get("vtt"), tag: searchParams.get("tag"),
     tier: searchParams.has("tier") ? parseInt(searchParams.get("tier") as string) : 0,
     hideSoldOut: searchParams.has("hideSoldOut")
@@ -238,7 +282,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!isLoading) {
-      if (filter.time || filter.time === 0 || filter.dm || filter.vtt || filter.name || filter.tag || filter.tier || filter.hideSoldOut) {
+      if (filter.dt || filter.dt === "0" || filter.dm || filter.vtt || filter.name || filter.tag || filter.tier || filter.hideSoldOut) {
         let results = data.sessions;
         let qs: Partial<FilterType> = {};
         if (filter.hideSoldOut === true) {
@@ -253,11 +297,14 @@ export default function Home() {
             return filter.tier === session.tier;
           });
         }
-        if (filter.time || filter.time === 0) {
-          qs.time = filter.time;
-          const fDate = new Date(filter.time);
+        if (filter.dt || filter.dt === "0") {
+          qs.dt = filter.dt;
+          const eq = (session: ClientVddwSession) => session.sessionDay === filter.dt;
+          const sw = (session: ClientVddwSession) => filter.dt && session.sessionDay?.startsWith(filter.dt.substring(4))
+          const zero = (session: ClientVddwSession) => session.sessionDay === undefined;
+          const dtF = filter.dt.startsWith("all_") ? sw : filter.dt === "0" ? zero : eq;
           results = results.filter((session: ClientVddwSession) => {
-            return filter.time === session.startDate;
+            return dtF(session); 
           })
         }
         if (filter.dm) {
@@ -372,7 +419,7 @@ export default function Home() {
           <Dropdown title="Group" items={data?.tags ?? []} initial={filter.tag || ""}  onSelect={(value) => setFilter((prev) => { return { ...prev, tag: value } })} />
           <Dropdown title="Tier" items={tiers ?? []} initial={filter.tier ? filter.tier : ""}  onSelect={(value) => setFilter((prev) => { return { ...prev, tier: value } })} />
           <Dropdown title="Name" items={data?.names ?? []} initial={filter.name || ""}  onSelect={(value) => setFilter((prev) => { return { ...prev, name: value } })} />
-          <Dropdown title="Start" items={data?.times ?? []} initial={filter.time ? filter.time : ""} onSelect={(value) => setFilter((prev) => { return { ...prev, time: value } })} />
+          <Dropdown title="Start" items={data?.dts ?? []} initial={filter.dt ? filter.dt : ""} onSelect={(value) => setFilter((prev) => { return { ...prev, dt: value } })} />
           <Dropdown title="DM" items={data?.dms ?? []} initial={filter.dm || ""} onSelect={(value) => setFilter((prev) => { return { ...prev, dm: value } })} />
           <Dropdown title="VTT" items={data?.vtts ?? []} initial={filter.vtt || ""} onSelect={(value) => setFilter((prev) => { return { ...prev, vtt: value } })} />
           <div>
@@ -390,7 +437,7 @@ export default function Home() {
         </div>
         <div className="text-sm flex flex-col sm:flex-auto pt-2">
           <span className="leading-6 text-gray-900">Filters: {filterToString(filter)}</span>
-          {filter.tag || filter.time || filter.dm || filter.vtt || filter.name || filter.tier || filter.hideSoldOut === true ? <span className="leading-6 text-gray-900">{isLoading ? <Skeleton width={140} /> : <>{filteredResults.length} match{filteredResults.length === 1 ? "" : "es"}</>}</span> : null}
+          {filter.tag || filter.dt || filter.dm || filter.vtt || filter.name || filter.tier || filter.hideSoldOut === true ? <span className="leading-6 text-gray-900">{isLoading ? <Skeleton width={140} /> : <>{filteredResults.length} match{filteredResults.length === 1 ? "" : "es"}</>}</span> : null}
         </div>
         <div>
         </div>

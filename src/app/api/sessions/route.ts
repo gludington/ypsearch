@@ -107,7 +107,6 @@ const toVddwSession2 = (session: any): VddwSession => {
             tier = -1;//unknown
         }
     }
-    
     const ses = {
         title: session.name,
         name: session.name || undefined,
