@@ -134,8 +134,7 @@ const toVddwSession2 = (session: any): VddwSession => {
     return ses;
 }
 
-const ttUrl = "https://5v0bufdx8j-dsn.algolia.net/1/indexes/A0C0B534-037F-11EF-8263-629C9FB4545D_events/browse?x-algolia-agent=Algolia%20for%20JavaScript%20(3.33.0)%3B%20AngularJS%20(1.5.2)&x-algolia-application-id=5V0BUFDX8J&x-algolia-api-key=a25692c12853aea7a77c5a7125498512";
-const tt2Url = "https://5v0bufdx8j-dsn.algolia.net/1/indexes/EBDF2E18-55E9-11EE-88C2-D369E386095E_events/query?x-algolia-agent=Algolia%20for%20JavaScript%20(3.33.0)%3B%20AngularJS%20(1.5.2)&x-algolia-application-id=5V0BUFDX8J&x-algolia-api-key=a25692c12853aea7a77c5a7125498512";
+const ttUrl = "https://5v0bufdx8j-dsn.algolia.net/1/indexes/A0C0B534-037F-11EF-8263-629C9FB4545D_events/browse?x-algolia-agent=Algolia%20for%20JavaScript%20(3.33.0)%3B%20AngularJS%20(1.5.2)&x-algolia-application-id=5V0BUFDX8J&x-algolia-api-key=a25692c12853aea7a77c5a7125498512"
 const ttParams = {
     params: "query=&filters=&hitsPerPage=1000&page=0&advancedSyntax=true"
 }
