@@ -37,51 +37,65 @@ export type VddwSession = {
     startDate: number;
     tags: string[];
     soldOut: boolean;
+    cancelled: boolean;
 }
 
 type VddwSessionResponse = {
     results: VddwSession[];
 }
 
-const toVddwSession = (session: any): VddwSession => {
+const toVddwSession2 = (session: any): VddwSession => {
     // title
     // Table #1 - BMG-MOON-MD-04 - Lair of Deceit - Owlbear.Rodeo
     // Red Carpet Booking - Your Adventures - We Pick the DM
-    const titleLine = session.title.split(' - ')
-    let isRedCarpet: boolean;
+    // ttevents format: "#77 - WBW-DC-ZODIAC-03 - Revenge of the Rakshasa
+    const titleLine = session.name.split(' - ')
     let code: string | null = null;
     let dm: string | null = null;
     let vtt: string | null = null;
     let name: string | null = null;
     let tier: number | null = null;
-    
-    let soldOut: boolean = session.total_attendees && session.total_attendees >= 5 ? true : false ;
+    let soldOut: boolean; 
+    if (session?.remaining_tickets === undefined) {
+        soldOut = false;
+    } else {
+        soldOut = session.remaining_tickets === 0;
+    }
+    const cancelled = session?.is_cancelled;
     if (titleLine.length > 0) {
         //does title contain Table #?
-        if (titleLine[0].indexOf("Table #") > -1) {
-            isRedCarpet = false;
+        if (titleLine.length > 2) {
             code = titleLine[1];
-            name = titleLine[1] + ' - ' + titleLine[2];
+            name = titleLine[2];
             //vtt is always last
-            const vttCandidate = titleLine[titleLine.length - 1];
-            vtt = vttCandidate;
+        } else if (titleLine.length > 1) {
+            name = titleLine[1];
         } else {
-            isRedCarpet = true;
-            name = session.title;
+            name = session.name;
         }
     } else {
-        isRedCarpet = true;
         name = null;
         code = null;
         dm = null;
-        vtt = null;
     }
 
-    const shortDescriptionLine = session.description_short.split(' - ');
+    if (session.description?.length) {
+        const ret = session.description.indexOf("\n");
+        if (ret > -1) {
+            const toReturn = session.description.substring(0, ret).trim();
+            const lastHyp = toReturn.lastIndexOf('- ');
+            if (lastHyp > -1) {
+                vtt = toReturn.substring(lastHyp + 2);
+            }
+        }
+    }
+    if (session.room_name?.length) {
+        dm = session.room_name.trim()
+    }
+    
+    const shortDescriptionLine = session.description.split(' - ');
     if (shortDescriptionLine.length > 0) {
-        const dmSegment = shortDescriptionLine.find((desc: string | string[]) => desc.indexOf("DM: ") > -1)
-        dm = dmSegment ? dmSegment.substring("DM :".length) : undefined;
-        const levels = ORDINAL_REGEX.map(ord => ord.exec(session.description_short))
+        const levels = ORDINAL_REGEX.map(ord => ord.exec(session.description))
             .filter(reg => reg?.length && reg.length > 1)
             // @ts-ignore - above prevents null
             .map(reg => /(\d+).*/.exec(reg[1]))
@@ -102,34 +116,43 @@ const toVddwSession = (session: any): VddwSession => {
             tier = -1;//unknown
         }
     }
-
-    return {
-        title: session.title,
+    const ses = {
+        title: name || "",
         name: name || undefined,
         code: code || undefined,
         tier: tier || undefined,
         dm: dm || undefined,
         vtt: vtt || undefined,
-        url: session.url,
+        url: "https://tabletop.events" + session.view_uri,
         description: session.description,
-        startDate: isRedCarpet ? 0 : session.start_date ? Date.parse(session.start_date) : 0,
+        startDate: session.start_date_epoch ? session.start_date_epoch * 1000 : 0,
         soldOut,
-        tags: session.tags ? session.tags.filter((tag: string) => tag.indexOf("day") === -1 && tag.indexOf("UTC") === -1) : []
+        cancelled: cancelled === 1,
+        tags: [] //session.eventtype_name ? [ session.eventtype_name ] : []
+            
     };
+    return ses;
 }
 
-const url = "https://yawningportal.dnd.wizards.com/api/event?chapter=26&page_size=900&status=Live&include_cohosted_events=true&visible_on_parent_chapter_only=true&order_by=start_date&fields=title,start_date,event_type_title,url,cohost_registration_url,total_attendees,tags,description_short&page=1";
+const ttUrl = "https://5v0bufdx8j-dsn.algolia.net/1/indexes/A0C0B534-037F-11EF-8263-629C9FB4545D_events/browse?x-algolia-agent=Algolia%20for%20JavaScript%20(3.33.0)%3B%20AngularJS%20(1.5.2)&x-algolia-application-id=5V0BUFDX8J&x-algolia-api-key=a25692c12853aea7a77c5a7125498512"
+const ttParams = {
+    params: "query=&filters=&hitsPerPage=1000&page=0&advancedSyntax=true"
+}
 export async function GET() {
     const { fetchDate, data } = await new Promise<{ fetchDate: number, data: any }>((resolve, reject) => {
-        fetch(url, { next: { revalidate: 120 } }).then(async rsp => {
+        fetch(ttUrl, {
+            method: "POST",
+            body: JSON.stringify(ttParams)
+        }).then(async rsp => {
             const ds = rsp.headers.get("date");
             const date = ds ? new Date(ds) : new Date();
-            resolve({ fetchDate: date.getTime(), data: await rsp.json() });
-        })
+            resolve({ fetchDate: date.getTime(), data: await rsp.json() })
+        });
     });
+    
     let results: VddwSession[];
-    if (data?.results?.length) {
-        results = data.results.map(toVddwSession);
+    if (data?.hits) {
+        results = data.hits.map(toVddwSession2);
     } else {
         results = [];
     }
