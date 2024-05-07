@@ -416,7 +416,7 @@ export default function Home() {
             ) : <div className="text-sm font-semibold leading-6 text-gray-900 whitespace-nowrap">Loading...</div>}
         </div>
         <div className="flex flex-wrap gap-4">
-          <Dropdown title="Group" items={data?.tags ?? []} initial={filter.tag || ""}  onSelect={(value) => setFilter((prev) => { return { ...prev, tag: value } })} />
+          {/*<Dropdown title="Group" items={data?.tags ?? []} initial={filter.tag || ""}  onSelect={(value) => setFilter((prev) => { return { ...prev, tag: value } })} />*/}
           <Dropdown title="Tier" items={tiers ?? []} initial={filter.tier ? filter.tier : ""}  onSelect={(value) => setFilter((prev) => { return { ...prev, tier: value } })} />
           <Dropdown title="Name" items={data?.names ?? []} initial={filter.name || ""}  onSelect={(value) => setFilter((prev) => { return { ...prev, name: value } })} />
           <Dropdown title="Start" items={data?.dts ?? []} initial={filter.dt ? filter.dt : ""} onSelect={(value) => setFilter((prev) => { return { ...prev, dt: value } })} />
